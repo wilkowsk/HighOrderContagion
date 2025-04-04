@@ -1,0 +1,26 @@
+                            OLS Regression Results                            
+==============================================================================
+Dep. Variable:            numOffenses   R-squared:                       0.439
+Model:                            OLS   Adj. R-squared:                  0.439
+Method:                 Least Squares   F-statistic:                     1316.
+Date:                Fri, 21 Feb 2025   Prob (F-statistic):               0.00
+Time:                        04:07:30   Log-Likelihood:                -11767.
+No. Observations:                3369   AIC:                         2.354e+04
+Df Residuals:                    3366   BIC:                         2.356e+04
+Df Model:                           2                                         
+Covariance Type:            nonrobust                                         
+==============================================================================
+                 coef    std err          t      P>|t|      [0.025      0.975]
+------------------------------------------------------------------------------
+const          3.0164      0.155     19.465      0.000       2.713       3.320
+beta_1         3.9012      0.077     50.755      0.000       3.751       4.052
+beta_2        -0.3736      0.011    -34.560      0.000      -0.395      -0.352
+==============================================================================
+Omnibus:                     2656.950   Durbin-Watson:                   1.745
+Prob(Omnibus):                  0.000   Jarque-Bera (JB):           127422.186
+Skew:                           3.341   Prob(JB):                         0.00
+Kurtosis:                      32.378   Cond. No.                         23.7
+==============================================================================
+
+Notes:
+[1] Standard Errors assume that the covariance matrix of the errors is correctly specified.
