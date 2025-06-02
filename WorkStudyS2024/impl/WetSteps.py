@@ -1,4 +1,6 @@
+import csv
 from datetime import date
+from fractions import Fraction
 import math
 import random
 
@@ -16,15 +18,20 @@ class WetSteps:
     def __init__(self):
         pass
         
-    def A_ApplyDeltas(self, collection, hasFormer: bool, currentDate):
+    def ApplyDeltas(self, collection, hasFormer: bool, currentDate, isolatedVertices: list[WetClique] = list()):
         
-        for clique in collection:
+        augmentedCollection = list(collection)
+        
+        # add None; special cases treat it as a set containing isolatedVertices
+        augmentedCollection.append(None)
+        
+        for clique in augmentedCollection:
             
-            currentContribsDict = clique.endangerDict(hasFormer=hasFormer)
+            currentContribsDict = clique.endangerDict(hasFormer=hasFormer) if clique else {x: CountList() for x in isolatedVertices}
             if hasFormer:
-                formerContribsDict = clique.endangerDict(currentDate, hasFormer=hasFormer)
+                formerContribsDict = clique.endangerDict(currentDate, hasFormer=hasFormer) if clique else {x: CountList() for x in isolatedVertices}
 
-            for vertex in clique.vertices:
+            for vertex in clique.vertices if clique else isolatedVertices:
                 
                 # log former value of riskCounts
                 if not vertex.infectedBefore(currentDate):
@@ -42,7 +49,7 @@ class WetSteps:
                     vertex.riskCounts.update(formerContribsDict[vertex], reverse=True)
                 vertex.riskLastChanged = currentDate
                 
-    def O_Init(self, fetcher, probRecovery):
+    def A_Init(self, fetcher, probRecovery):
         
         WetClique.reset()
     
@@ -87,7 +94,7 @@ class WetSteps:
         self.probSeparator = probSeparator
         return weeklyList
 
-    def I_Infect(self, week, currentDate):
+    def B1_Infect(self, week, currentDate):
         # 1. infect vertices
         # note: vertices are infected only if they offend during this timestep
         # note: do this step before populating cliques to avoid a self-causing infection
@@ -126,7 +133,7 @@ class WetSteps:
         
         return justInfected
 
-    def II_LogInfections(self, justInfected, currentDate):
+    def B2_LogInfections(self, justInfected, currentDate):
         
         # 2. log ONLY transmissions
         # note: creation and destruction deferred to 5, to await complete information
@@ -149,12 +156,12 @@ class WetSteps:
             
             if VERBOSE:
                 print(vertex.name, "from", vertex.riskLastChanged, "(", 1, "timesteps", "),", True)
-                print("   ", tuple(vertex.riskCounts.values()))
+                print("   ", vertex.riskCounts.internalList)
                 
         if VERBOSE:
             print("~~~~~")
             
-    def III_Recover(self, probRecovery, currentDate) -> list[WetClique]:
+    def B3_Recover(self, probRecovery, currentDate) -> list[WetClique]:
         
         # 3. remove infections
         
@@ -194,7 +201,7 @@ class WetSteps:
                 
         return justRecovered
     
-    def IV_LogExistence(self, justToggled, currentDate) -> None:
+    def B4_LogExistence(self, justToggled, currentDate) -> None:
         
         # 4. log creation and destruction
         
@@ -203,18 +210,22 @@ class WetSteps:
         changedCliques: set = set()
         
         # collect all unique cliques that must be updated
+        # 
         
         vertex: WetClique
+        isolatedVertices = list()
         for vertex in justToggled:
+            if not vertex.inCliques:
+                isolatedVertices.append(vertex)
             clique: WetClique
             for clique in vertex.inCliques:
                 changedCliques.add(clique)
 
-        self.A_ApplyDeltas(changedCliques, True, currentDate)
+        self.ApplyDeltas(changedCliques, True, currentDate, isolatedVertices = isolatedVertices)
             
         if VERBOSE: print("~~~~~")
         
-    def V_AddCliques(self, week, currentDate) -> CountList:
+    def B5_AddCliques(self, week, currentDate) -> CountList:
         # 5. populate cliques
         if PROGRESS_SUBCHECK: print("E. populate cliques")
         
@@ -246,11 +257,11 @@ class WetSteps:
             addedCliques.update(output)
             
         if MODEL_NAME() in {"baseline", "hypergraph"}:
-            self.A_ApplyDeltas(addedCliques, False, currentDate)
+            self.ApplyDeltas(addedCliques, False, currentDate)
             
         if VERBOSE: print("~~~~~")
         
-    def Z_FinishVertices(self, currentDate) -> None:
+    def Z1_FinishVertices(self, currentDate) -> None:
         
         if VERBOSE:
             print("Z: finish all vertices")
@@ -279,8 +290,49 @@ class WetSteps:
             vertex: WetClique
             for vertex in WetClique.allVertices.values():
                 self.probSeparator.add(vertex.name, vertex.name, -1, 0)
+                
+    def Z2_MidData(self, probRecovery) -> None:
+        midFilename = MID_DATA_PREFIX + OUTPUT_FILENAME()
+        dotLoc = midFilename.find(".")
+        midFilename = midFilename[:dotLoc] + "_" + MODEL_NAME() + "_" + str(probRecovery) + ".csv"
+        
+        with open(midFilename, "w", newline = "\n") as midFile:
+            if MODEL_NAME() == "pure":
+                fieldnames = list(SIZE_RANGE()) + [-1]
+                writer = csv.DictWriter(midFile, fieldnames=fieldnames, restval=0)
+            
+                writer.writeheader()
+            
+                for sample in self.probSeparator.trainDataCollector.probTable.internalDict.values():
+                    writer.writerow(sample)
+            if MODEL_NAME() == "baseline":
+                fieldnames = list(SIZE_RANGE()) + [True, False]
+                writer = csv.DictWriter(midFile, fieldnames=fieldnames, restval=0)
+            
+                writer.writeheader()
+            
+                for sample in self.probSeparator.trainDataCollector.probTable.internalDict.items():
+                    row = sample[0].internalDict | sample[1]
+                    writer.writerow(row)
+            if MODEL_NAME() == "hypergraph":
+                fieldnames = list()
+                rows = list()
+                
+                for sample in self.probSeparator.trainDataCollector.probTable.internalDict.items():
+                    row = sample[0].internalDict | sample[1]
+                    fieldnames += [str(key) for key in row.keys() if key not in rows and isinstance(key, Fraction)]
                     
-    def Z_RegressData(self) -> None:
+                    row = {str(key) if isinstance(key, Fraction) else key: value for key,value in row.items()}
+                    rows.append(row)
+                    
+                fieldnames.sort()
+                fieldnames += [True, False]
+                    
+                writer = csv.DictWriter(midFile, fieldnames=fieldnames, restval=0)
+                writer.writeheader
+                writer.writerows(rows)
+                    
+    def Z3_RegressData(self) -> None:
         # print(self.probSeparator.trainDataCollector.probTable.internalDict)
 
         if MODEL_NAME() in {"baseline", "pure"}:

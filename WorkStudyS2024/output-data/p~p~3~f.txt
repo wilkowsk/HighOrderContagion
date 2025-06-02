@@ -3,8 +3,8 @@
 Dep. Variable:            numOffenses   R-squared:                       0.470
 Model:                            OLS   Adj. R-squared:                  0.470
 Method:                 Least Squares   F-statistic:                     995.7
-Date:                Fri, 21 Feb 2025   Prob (F-statistic):               0.00
-Time:                        04:08:24   Log-Likelihood:                -11670.
+Date:                Fri, 30 May 2025   Prob (F-statistic):               0.00
+Time:                        10:14:07   Log-Likelihood:                -11670.
 No. Observations:                3369   AIC:                         2.335e+04
 Df Residuals:                    3365   BIC:                         2.337e+04
 Df Model:                           3                                         
@@ -17,7 +17,7 @@ beta_1         4.6097      0.090     51.228      0.000       4.433       4.786
 beta_2        -1.2432      0.062    -19.897      0.000      -1.366      -1.121
 beta_3         0.1244      0.009     14.119      0.000       0.107       0.142
 ==============================================================================
-Omnibus:                     2769.403   Durbin-Watson:                   1.776
+Omnibus:                     2769.403   Durbin-Watson:                   1.795
 Prob(Omnibus):                  0.000   Jarque-Bera (JB):           143315.930
 Skew:                           3.544   Prob(JB):                         0.00
 Kurtosis:                      34.156   Cond. No.                         158.

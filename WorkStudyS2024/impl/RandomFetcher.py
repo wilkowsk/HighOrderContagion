@@ -30,7 +30,7 @@ class RandomFetcher:
             row: dict[str, str] = {
                 "UID": uid,
                 "appointed_date": date.isoformat(date.fromisoformat(DATE_MIN) + timedelta(number)),
-                "resignation_date": date.isoformat(date.fromisoformat(DATE_INITIAL) + timedelta(self.numCliques)),
+                "resignation_date": date.isoformat(date.fromisoformat(DATE_INITIAL) + timedelta(self.numCliques * INT_RES)),
             }
             profileDict[row["UID"]] = row
 
@@ -94,7 +94,7 @@ class RandomFetcher:
             
         for number in range(self.numCliques):
             crid: str = "Q" + str(number)
-            incidentDate: str = date.isoformat(date.fromisoformat(DATE_INITIAL) + timedelta(number))
+            incidentDate: str = date.isoformat(date.fromisoformat(DATE_INITIAL) + timedelta(number * INT_RES))
             
             row: dict[str, str] = {
                 "cr_id": crid,

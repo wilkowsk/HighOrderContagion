@@ -3,8 +3,8 @@
 Dep. Variable:            numOffenses   R-squared:                       0.656
 Model:                            OLS   Adj. R-squared:                  0.656
 Method:                 Least Squares   F-statistic:                 3.219e+04
-Date:                Fri, 21 Feb 2025   Prob (F-statistic):               0.00
-Time:                        04:13:20   Log-Likelihood:            -1.0973e+05
+Date:                Fri, 30 May 2025   Prob (F-statistic):               0.00
+Time:                        10:10:34   Log-Likelihood:            -1.0973e+05
 No. Observations:               33693   AIC:                         2.195e+05
 Df Residuals:                   33690   BIC:                         2.195e+05
 Df Model:                           2                                         

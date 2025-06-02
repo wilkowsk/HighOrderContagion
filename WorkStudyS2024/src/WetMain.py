@@ -6,7 +6,7 @@ from matplotlib import pyplot as plt
 from matplotlib import colors
 from matplotlib.axes import Axes
 import numpy
-import impl.WetAnalysis as WetAnalysis
+from impl.WetAnalysis import WetAnalysis
 from impl.GlobalConsts import *
 from impl.OffenseFetcher import OffenseFetcher
 from impl.RandomFetcher import RandomFetcher

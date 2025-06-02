@@ -69,6 +69,3 @@ class CountList(object):
         for key in self.allKeys():
             output += hash(key) * self.internalDict[key]
         return output
-    
-    def __str__(self) -> str:
-        return str(self.internalDict)

@@ -15,6 +15,7 @@
     <TestFramework>unittest</TestFramework>
     <UnitTestPattern>test_*.py</UnitTestPattern>
     <UnitTestRootDirectory>.</UnitTestRootDirectory>
+    <IsWindowsApplication>False</IsWindowsApplication>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)' == 'Debug' ">
     <DebugSymbols>true</DebugSymbols>
@@ -41,6 +42,7 @@
     <Compile Include="test_correctness.py">
       <SubType>Code</SubType>
     </Compile>
+    <Compile Include="test_regression.py" />
   </ItemGroup>
   <ItemGroup>
     <Folder Include="impl\" />
@@ -55,6 +57,9 @@
     <Content Include="output-data\b~p~2~t~101.csv" />
     <Content Include="output-data\b~p~3~f~101.csv" />
     <Content Include="output-data\b~p~2~f~101.csv" />
+    <Content Include="rand-data\complaints-accused.csv" />
+    <Content Include="rand-data\complaints-complaints.csv" />
+    <Content Include="rand-data\final-profiles.csv" />
   </ItemGroup>
   <Import Project="$(MSBuildExtensionsPath32)\Microsoft\VisualStudio\v$(VisualStudioVersion)\Python Tools\Microsoft.PythonTools.targets" />
   <!-- Uncomment the CoreCompile target to enable the Build command in

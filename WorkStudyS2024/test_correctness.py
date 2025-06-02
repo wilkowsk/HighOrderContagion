@@ -1,165 +1,282 @@
-import unittest
-
 import itertools
-from impl.OffenseFetcher import OffenseFetcher
-from impl.ImplyClique import ImplyClique
-import random
-import numpy
-import math
-import networkx as nx
+import unittest
+from impl.CountCollections import CountDict
+from impl.ProbRegressor import RegressOutputFile
+from impl.RandomFetcher import *
+from impl.OffenseFetcher import *
+from impl.WetAnalysis import *
+from impl.WetSteps import *
 
-from impl.WetClique import WetClique
+class Test_comparative(unittest.TestCase):
+    def randomizeData(self, numVertices: int, numCliques: int, numOffenses: int):
+        fetcher = RandomFetcher(numVertices, numCliques, numOffenses)
+        profileDict = fetcher.getProfileDict()
+        complaintList = fetcher.getComplaintList(profileDict)
+        allComplaintDates = fetcher.allComplaintDates(complaintList)
 
-class Test_test_correctness(unittest.TestCase):
-    def test_count(self):
-        numTests:       int = 64
-        numVertices:    int = 64
-        numCliques:     int = 64
+    def setUp(self):
+        # reset changeable global variables
+        NONNEGATIVITY(False)
+        FULL_DATASET(False)
+        OUTPUT_FILENAME("zzzdefault.csv")
+        MODEL_NAME("baseline")
+        MAX_CLIQUE_SIZE(3)
+        MU_COUNT(1)
+        THETA_COUNT(1)
+        
+        # reset classes with persistent state
+        RegressOutputFile.rof = None
 
-        enableTheirs:  bool = True
+    def test_clique_formation(self):
+        MODEL_NAME("pure")
+        MAX_CLIQUE_SIZE(3)
 
-        rng = numpy.random.default_rng()
-
-        for iterationCount in range(numTests):
-            ImplyClique.reset()
-    
-            if (enableTheirs):
-                theirGraph = nx.Graph()
-    
-            for letter in range(numVertices):
-                name: str = "V" + str(letter)
+        numTests:       int = 16
+        numVertices:    int = 16
+        numCliques:     int = 16
         
-                # OUR IMPL.
-                v = ImplyClique(name=name)
+        probRecovery = 0.5
         
-                # THEIR IMPL.
-                if (enableTheirs):
-                    theirGraph.add_node(name)
-    
-            for cliqueNum in range(numCliques):
-        
-                cliqueSize = rng.binomial(numVertices, 3/numVertices)   # TODO: find a better distribution
-                indices = random.sample(range(numVertices), cliqueSize)
-                """
-            for indices in itertools.combinations(range(0,3), 2):
-                cliqueNum = 0    
-                """
-                names = ["V" + str(x) for x in indices]
-        
-                nilpadCliqueNum = "0" * (math.ceil(math.log10(numCliques)) - len(str(cliqueNum))) + str(cliqueNum)
-                nilpadIterationCount = "0" * (math.ceil(math.log10(numTests)) - len(str(iterationCount))) + str(iterationCount)
-                print(nilpadIterationCount, nilpadCliqueNum, names)
-        
-                # OUR IMPL.
-                vertices = set([ImplyClique.allVertices.get(x) for x in names])
-                ImplyClique.update(vertices)
-        
-                # THEIR IMPL.
-                if (enableTheirs):
-                    for x, y in itertools.combinations(names, 2):
-                        theirGraph.add_edge(x, y)
-                    theirCliques = list(nx.find_cliques(theirGraph))
-        
-        
-                """
-                print("~~~~~")
-        
-                for v in ImplyClique.allVertices.values():
-                    if str(v):
-                        print(v)
+        class TestWetAnalysis(WetAnalysis):
+            allPairs: set = set()
                 
-                for v in ImplyClique.maxCliques.values():
-                    if str(v):
-                        print(v)
-                
-                print("~~~~~")
-                """
-        
-                ImplyClique.sanityCheck()
-        
-                if (enableTheirs):
-                    assert len(theirCliques) == len(ImplyClique.maxCliques)
+            @classmethod
+            def atLoopEnd(cls, week):
+                for row in week:
+                    vertices = [WetClique.allVertices[x["UID"]] for x in row["accusation"]]
                     
-    def test_wet(self):
-        numTests:       int = 64
-        numVertices:    int = 64
-        numCliques:     int = 64
-
-        enableTheirs:  bool = True
-
-        rng = numpy.random.default_rng()
-
-        for iterationCount in range(numTests):
-            WetClique.reset()
-    
-            if (enableTheirs):
-                theirGraph = nx.Graph()
-                theirCliques = set()
-    
-            for letter in range(numVertices):
-                name: str = "V" + str(letter)
-        
-                # OUR IMPL.
-                v = WetClique(name=name)
-        
-                # THEIR IMPL.
-                if (enableTheirs):
-                    theirGraph.add_node(name)
-                    theirCliques.add(tuple((name,)))
-    
-            for cliqueNum in range(numCliques):
-        
-                cliqueSize = rng.binomial(numVertices, 3/numVertices)   # TODO: find a better distribution
-                indices = random.sample(range(numVertices), cliqueSize)
-                """
-            for indices in itertools.combinations(range(0,3), 2):
-                cliqueNum = 0
-                """
-                names = ["V" + str(x) for x in indices]
-        
-                nilpadCliqueNum = "0" * (math.ceil(math.log10(numCliques)) - len(str(cliqueNum))) + str(cliqueNum)
-                nilpadIterationCount = "0" * (math.ceil(math.log10(numTests)) - len(str(iterationCount))) + str(iterationCount)
-                print(nilpadIterationCount, nilpadCliqueNum, names)
-        
-                # OUR IMPL.
-                vertices = set([WetClique.allVertices.get(x) for x in names])
-                WetClique.update(vertices)
-        
-                # THEIR IMPL.
-                if (enableTheirs):
-                    for x, y in itertools.combinations(names, 2):
-                        theirGraph.add_edge(x, y)
+                    for v1,v2 in itertools.combinations(vertices, 2):
+                        pair = frozenset({v1, v2})
+                        cls.allPairs.add(pair)
+                
+                for v1,v2 in itertools.combinations(WetClique.allVertices.values(), 2):
+                    totalCoef: int = 0
+                    
+                    clique: WetClique
+                    for clique in v1.inCliques & v2.inCliques:
+                        totalCoef += clique.coef
                         
-                    # NOTE: This code adapted from https://stackoverflow.com/questions/58775867/what-is-the-best-way-to-count-the-cliques-of-size-k-in-an-undirected-graph-using
-                    for k in range(1, WetClique.maxSize + 1):
-                        if len(names) == k:
-                            theirCliques.add(tuple(sorted(names)))
-                        elif len(names) > k:
-                            for mini_clique in itertools.combinations(names, k):
-                                theirCliques.add(tuple(sorted(mini_clique)))
-        
-        
-                """
-                print("~~~~~")
-        
-                for v in ImplyClique.allVertices.values():
-                    if str(v):
-                        print(v)
-                
-                for v in ImplyClique.maxCliques.values():
-                    if str(v):
-                        print(v)
-                
-                print("~~~~~")
-                """
-        
-                WetClique.sanityCheck()
-                
-                print(len(theirCliques))
-                print(len(WetClique.allCliques))
-        
-                if (enableTheirs):
-                    assert len(theirCliques) == len(WetClique.allCliques)
+                    expectedCoef = 1 if frozenset({v1,v2}) in cls.allPairs else 0
 
+                    self.assertEqual(totalCoef,expectedCoef)
+                    
+        # RAND_DATA_PREFIX loads the fetcher with random data
+        # if the test fails, the fetcher persists for the next test run
+        fetcher = OffenseFetcher(prefix = RAND_DATA_PREFIX)
+        
+        for _ in range(numTests):
+            TestWetAnalysis.tabulate(fetcher, probRecovery, doRegress=False)
+            
+            # randomize fetcher for next test
+            self.randomizeData(numVertices, numCliques, numCliques * 3)
+            
+    def test_hyperedge_formation(self):
+        MODEL_NAME("hypergraph")
+        MAX_CLIQUE_SIZE(3)
+
+        numTests:       int = 16
+        numVertices:    int = 16
+        numCliques:     int = 16
+        
+        probRecovery = 0.5
+        
+        class TestWetAnalysis(WetAnalysis):
+            allPairs: CountList = CountList()
+                
+            @classmethod
+            def atLoopEnd(cls, week):
+                for row in week:
+                    vertices = [WetClique.allVertices[x["UID"]] for x in row["accusation"]]
+                    
+                    for v1,v2 in itertools.combinations(vertices, 2):
+                        pair = frozenset({v1, v2})
+                        cls.allPairs.add(pair)
+                
+                for v1,v2 in itertools.combinations(WetClique.allVertices.values(), 2):
+                    pair = frozenset({v1, v2})
+                    totalCoef: int = 0
+                    
+                    clique: WetClique
+                    for clique in v1.inCliques & v2.inCliques:
+                        totalCoef += clique.coef
+                        
+                    expectedCoef = cls.allPairs.read(pair)
+
+                    self.assertEqual(totalCoef,expectedCoef)
+                    
+        # RAND_DATA_PREFIX loads the fetcher with random data
+        # if the test fails, the fetcher persists for the next test run
+        fetcher = OffenseFetcher(prefix = RAND_DATA_PREFIX)
+        
+        for _ in range(numTests):
+            TestWetAnalysis.tabulate(fetcher, probRecovery, doRegress=False)
+            
+            # randomize fetcher for next test
+            self.randomizeData(numVertices, numCliques, numCliques * 3)
+            
+    def test_sample_equivalence(self):
+        MODEL_NAME("baseline")
+        MAX_CLIQUE_SIZE(3)
+
+        numTests:       int = 16
+        numVertices:    int = 16
+        numCliques:     int = 16
+        
+        probRecovery = 1
+        
+        class TestWetAnalysis(WetAnalysis):
+            extantWetSteps: WetSteps = None
+            expectedProbTable: CountDict = CountDict()
+            
+            @classmethod
+            def beforeLoop(cls, ws):
+                cls.extantWetSteps = ws
+                # print(ws)
+                
+            @classmethod
+            def atLoopBegin(cls, week):
+                justInfected: set = set()
+
+                for row in week:
+                    vertices = [WetClique.allVertices[x["UID"]] for x in row["accusation"]]
+                    
+                    justInfected |= set(vertices)
+                
+                vertex: WetClique
+                for vertex in WetClique.allVertices.values():
+                    isCounted: bool = True
+                    if vertex.virginity:
+                        # virgin vertices cannot get infected
+                        isCounted = False
+                    if vertex.isInfected():
+                        # infected vertices cannot get infected again
+                        isCounted = False
+                        
+                    if isCounted:
+                        cls.expectedProbTable.add(vertex.riskCounts.getState(), (vertex in justInfected), 1)
+
+                actualProbTable = TestWetAnalysis.extantWetSteps.probSeparator.trainDataCollector.probTable
+                print("Actual prob table:")
+                for entry in actualProbTable.internalDict.items():
+                    print(entry[0], entry[1])
+        
+        # self.randomizeData(numVertices, numCliques, numCliques * 3)
+                    
+        # RAND_DATA_PREFIX loads the fetcher with random data
+        # if the test fails, the fetcher persists for the next test run
+        fetcher = OffenseFetcher(prefix = RAND_DATA_PREFIX)
+        #fetcher = OffenseFetcher(profileCond = lambda row: row["UID"][-1] == "5")            
+        
+        for _ in range(numTests):
+            TestWetAnalysis.tabulate(fetcher, probRecovery, doRegress=False)
+            
+            expectedProbTable = TestWetAnalysis.expectedProbTable
+            print("Expected prob table:")
+            for entry in expectedProbTable.internalDict.items():
+                print(entry[0], entry[1])
+                
+            actualProbTable = TestWetAnalysis.extantWetSteps.probSeparator.trainDataCollector.probTable
+            print("Actual prob table:")
+            for entry in actualProbTable.internalDict.items():
+                print(entry[0], entry[1])
+                
+            # subtract actualProbTable from expectedProbTable, expect zero result
+            for key in actualProbTable.internalDict.keys():
+                for value in actualProbTable.internalDict[key].keys():
+                    count = actualProbTable.read(key, value)
+                    expectedProbTable.add(key, value, -count)
+                    
+            for key in expectedProbTable.internalDict.keys():
+                for value in expectedProbTable.internalDict[key].keys():
+                    count = expectedProbTable.read(key, value)
+                    # if key.internalDict != dict():
+                    if True:
+                        self.assertEqual(count, 0)
+            
+            # randomize fetcher for next test
+            self.randomizeData(numVertices, numCliques, numCliques * 3)
+
+    def test_hypergraph_sample_equivalence(self):
+        MODEL_NAME("hypergraph")
+        MAX_CLIQUE_SIZE(3)
+
+        numTests:       int = 16
+        numVertices:    int = 16
+        numCliques:     int = 16
+        
+        probRecovery = 1
+        
+        class TestWetAnalysis(WetAnalysis):
+            extantWetSteps: WetSteps = None
+            expectedProbTable: CountDict = CountDict()
+            
+            @classmethod
+            def beforeLoop(cls, ws):
+                cls.extantWetSteps = ws
+                # print(ws)
+                
+            @classmethod
+            def atLoopBegin(cls, week):
+                justInfected: set = set()
+
+                for row in week:
+                    vertices = [WetClique.allVertices[x["UID"]] for x in row["accusation"]]
+                    
+                    justInfected |= set(vertices)
+                
+                vertex: WetClique
+                for vertex in WetClique.allVertices.values():
+                    isCounted: bool = True
+                    if vertex.virginity:
+                        # virgin vertices cannot get infected
+                        isCounted = False
+                    if vertex.isInfected():
+                        # infected vertices cannot get infected again
+                        isCounted = False
+                        
+                    if isCounted:
+                        cls.expectedProbTable.add(vertex.riskCounts.getState(), (vertex in justInfected), 1)
+
+                actualProbTable = TestWetAnalysis.extantWetSteps.probSeparator.trainDataCollector.probTable
+                print("Actual prob table:")
+                for entry in actualProbTable.internalDict.items():
+                    print(entry[0], entry[1])
+        
+        # self.randomizeData(numVertices, numCliques, numCliques * 3)
+                    
+        # RAND_DATA_PREFIX loads the fetcher with random data
+        # if the test fails, the fetcher persists for the next test run
+        fetcher = OffenseFetcher(prefix = RAND_DATA_PREFIX)
+        #fetcher = OffenseFetcher(profileCond = lambda row: row["UID"][-1] == "5")            
+        
+        for _ in range(numTests):
+            TestWetAnalysis.tabulate(fetcher, probRecovery, doRegress=False)
+            
+            expectedProbTable = TestWetAnalysis.expectedProbTable
+            print("Expected prob table:")
+            for entry in expectedProbTable.internalDict.items():
+                print(entry[0], entry[1])
+                
+            actualProbTable = TestWetAnalysis.extantWetSteps.probSeparator.trainDataCollector.probTable
+            print("Actual prob table:")
+            for entry in actualProbTable.internalDict.items():
+                print(entry[0], entry[1])
+                
+            # subtract actualProbTable from expectedProbTable, expect zero result
+            for key in actualProbTable.internalDict.keys():
+                for value in actualProbTable.internalDict[key].keys():
+                    count = actualProbTable.read(key, value)
+                    expectedProbTable.add(key, value, -count)
+                    
+            for key in expectedProbTable.internalDict.keys():
+                for value in expectedProbTable.internalDict[key].keys():
+                    count = expectedProbTable.read(key, value)
+                    # if key.internalDict != dict():
+                    if True:
+                        self.assertEqual(count, 0)
+            
+            # randomize fetcher for next test
+            self.randomizeData(numVertices, numCliques, numCliques * 3)
+    
 if __name__ == '__main__':
     unittest.main()
