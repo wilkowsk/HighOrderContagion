@@ -150,7 +150,7 @@ class ProbRegressor:
         # workingTuple = (lineCount, triCount)
         self.probTable.add(workingTuple, result, weight)
                 
-    def linearDataset(self, *, bigTheta: float = None) -> dict[list]:
+    def linearDataset(self, *, bigTheta: float = None) -> dict[str, list]:
         xVals: list[list[int]] = list()
         yVals: list[float] = list()
         weights: list[int] = list()
@@ -207,10 +207,7 @@ class ProbRegressor:
         
         if MODEL_NAME() in {"baseline", "hypergraph"}:
             model = linear_model.LinearRegression(positive=NONNEGATIVITY())
-            try:
-                model.fit(xVals, yVals, weights)
-            except:
-                pass
+            model.fit(xVals, yVals, weights)
         
             if verbose:
                 for i,j,k in sorted(zip(xVals, yVals, weights)):

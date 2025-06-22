@@ -60,6 +60,7 @@
     <Content Include="rand-data\complaints-accused.csv" />
     <Content Include="rand-data\complaints-complaints.csv" />
     <Content Include="rand-data\final-profiles.csv" />
+    <Content Include="README.md" />
   </ItemGroup>
   <Import Project="$(MSBuildExtensionsPath32)\Microsoft\VisualStudio\v$(VisualStudioVersion)\Python Tools\Microsoft.PythonTools.targets" />
   <!-- Uncomment the CoreCompile target to enable the Build command in

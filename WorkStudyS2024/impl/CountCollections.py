@@ -67,5 +67,6 @@ class CountList(object):
     def __hash__(self) -> int:
         output = 0
         for key in self.allKeys():
-            output += hash(key) * self.internalDict[key]
+            # output += hash(key) * self.internalDict[key])
+            output += hash(key) * hash(self.internalDict[key]) # equivalent where both cause no exceptions
         return output
